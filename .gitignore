@@ -1,0 +1,7 @@
+.DS_Store
+node_modules/
+
+# Herdr generates these when validating a mod.
+mods/*/jsconfig.json
+mods/*/*.d.ts
+mods/*/*.error
