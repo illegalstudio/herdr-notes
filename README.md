@@ -167,6 +167,26 @@ to reload the mod after each change.
 After changing the UI, also open it in Herdr: the check covers only the
 first render. See [RECIPE.md](RECIPE.md) for composition and acceptance checks.
 
+## Release
+
+From a clean `main` branch that has been pushed to `origin`, run:
+
+```sh
+make release
+```
+
+The command fetches tags, proposes the next patch version (starting at
+`v0.1.0`), and accepts a custom `vMAJOR.MINOR.PATCH` version with or without
+the `v`. After confirmation it creates an annotated tag at the displayed commit
+and pushes the tag to `origin`.
+
+The GitHub **Release** workflow runs the JavaScript tests, packages the mod as
+`.zip` and `.tar.gz`, and publishes those archives with SHA-256 checksums and
+generated release notes. Archives contain the `mods/herdr-notes` folder, the
+installation docs, recipe, preview and license from the tagged commit.
+Generated Herdr files stay out of the archives. Follow the workflow with
+`gh run list --workflow release.yml`.
+
 ## Remove
 
 Remove the `notes` block from your layout and the button from your tab bar,
