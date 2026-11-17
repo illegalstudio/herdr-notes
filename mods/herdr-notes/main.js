@@ -23,6 +23,10 @@ function location() {
   return { cwd: pane?.cwd || f?.cwd || space?.folder || null, on: on ?? null };
 }
 const contextKey = (loc) => JSON.stringify([loc.on, loc.cwd]);
+// What the panel shows (the open note, the search) belongs to a project: every
+// folder of one project shares it, folders outside any project share one more.
+// A folder plib has not answered for yet has no view.
+const viewKey = (ctx) => ctx?.resolved ? JSON.stringify([ctx.on, ctx.project]) : null;
 
 function stored(key, fallback) {
   try { const value = localStorage.getItem(key); return value === null ? fallback : JSON.parse(value); }
@@ -42,7 +46,9 @@ export default class Notes extends View {
     this.home = props()?.home || null;
     this.contexts = new Map();
     this.machines = new Map();
-    this.session = null;
+    this.sessions = new Map();  // view key -> the note open there
+    this.queries = new Map();   // view key -> what its search holds
+    this.view = null;
     this.query = "";
     this.filter = stored("filter", "all");
     this.mode = stored("mode", "edit");
@@ -65,10 +71,25 @@ export default class Notes extends View {
     });
   }
 
-  // Unsaved text goes out before the pane, tab or app closes.
+  /** The note open for the focused pane's project, if any. */
+  get session() {
+    const key = viewKey(this.ctx);
+    return key ? this.sessions.get(key) ?? null : null;
+  }
+
+  // Unsaved text goes out before the pane, tab or app closes, in every project.
   async close() {
-    const s = this.session;
-    if (s && !s.dead && this.dirty(s)) await this.commit(s);
+    for (const s of [...this.sessions.values()]) if (!s.dead && this.dirty(s)) await this.commit(s);
+  }
+
+  /** Swaps the search when the focused pane moves to another project. */
+  switchView() {
+    const key = viewKey(this.ctx);
+    if (!key || key === this.view) return;
+    if (this.view) this.queries.set(this.view, this.query);
+    this.view = key;
+    const query = this.queries.get(key) ?? "";
+    if (query !== this.query) { this.query = query; this.search.set_value(query); }
   }
 
   visible() {
@@ -135,7 +156,7 @@ export default class Notes extends View {
       else { ctx.state = "error"; ctx.error = P.errorText(status.stderr || status.stdout); }
       return;
     }
-    ctx.root = info.root ?? null; ctx.project = info.project || ""; ctx.git = info.git ?? null;
+    ctx.root = info.root ?? null; ctx.project = info.project || ""; ctx.git = info.git ?? null; ctx.resolved = true;
     if (!info.initialized) { ctx.state = "uninitialized"; return; }
     const list = await exec("plib", P.listArgs(this.home), at(ctx));
     const notes = list.code === 0 ? P.parseJSON(list.stdout) : null;
@@ -213,7 +234,7 @@ export default class Notes extends View {
     if (!ctx || ctx.state !== "ready") return;
     this.leave(cx);
     const base = note ? baseOf(note) : { title: "", body: "", scope: ctx.project && this.filter !== "global" ? "project" : "global", project: "", revision: null };
-    const s = { id: note?.id ?? null, on: ctx.on, dir: ctx.dir, project: ctx.project, base, scope: base.scope, gen: 0, saving: false, again: false, status: "", error: null, conflict: null, gone: false, confirm: false, dead: false, final: null, auto: false, fresh: !note };
+    const s = { view: viewKey(ctx), id: note?.id ?? null, on: ctx.on, dir: ctx.dir, project: ctx.project, base, scope: base.scope, gen: 0, saving: false, again: false, status: "", error: null, conflict: null, gone: false, confirm: false, dead: false, final: null, auto: false, fresh: !note };
     s.title = InputState.new({ placeholder: "Title", value: base.title });
     // A textarea, not Herdr's code editor: only text states can take a paste from the mod (see paste).
     s.body = TextareaState.new({ value: base.body });
@@ -224,7 +245,7 @@ export default class Notes extends View {
       state.on("focus", () => { this.typing = state; });
       state.on("blur", (_e, cx) => { if (this.typing === state) this.typing = null; if (!s.dead && this.dirty(s)) this.save(s, cx); });
     }
-    this.session = s;
+    this.sessions.set(s.view, s);
     if (!note) s.title.focus();
     cx.notify();
   }
@@ -268,7 +289,8 @@ export default class Notes extends View {
     cx.spawn(async (cx) => {
       await this.commit(s);
       if (s.again) { s.again = false; if (!s.dead && this.dirty(s)) return this.save(s, cx); }
-      if (this.session !== s && !s.dead) await this.rescue(s);
+      // A note in another project's view stays open there and shows its banner when the person returns.
+      if (this.sessions.get(s.view) !== s && !s.dead) await this.rescue(s);
       cx.notify();
       if (s.wrote) { s.wrote = false; this.syncSoon(s.on, cx); }
     });
@@ -325,16 +347,17 @@ export default class Notes extends View {
     }
   }
 
-  // A fresh list may show that the open note changed or went away elsewhere.
+  // A fresh list may show that an open note changed or went away elsewhere.
   reconcile(ctx) {
-    const s = this.session;
-    if (!s || !s.id || s.saving || s.dead || s.on !== ctx.on) return;
-    const note = ctx.notes.find((n) => n.id === s.id);
-    if (!note) { if (P.inScope({ project: s.base.project }, ctx.project)) s.gone = true; return; }
-    s.gone = false;
-    if (note.revision === s.base.revision) { if (s.conflict) s.conflict = null; return; }
-    if (this.dirty(s)) { s.conflict = note; s.status = "conflict"; }
-    else this.adopt(s, note);
+    for (const s of this.sessions.values()) {
+      if (!s.id || s.saving || s.dead || s.on !== ctx.on) continue;
+      const note = ctx.notes.find((n) => n.id === s.id);
+      if (!note) { if (P.inScope({ project: s.base.project }, ctx.project)) s.gone = true; continue; }
+      s.gone = false;
+      if (note.revision === s.base.revision) { if (s.conflict) s.conflict = null; continue; }
+      if (this.dirty(s)) { s.conflict = note; s.status = "conflict"; }
+      else this.adopt(s, note);
+    }
   }
 
   /** Shows `note` in the fields as the saved state. */
@@ -403,7 +426,7 @@ export default class Notes extends View {
     if (!s.final) s.final = { title: s.title.value(), body: s.body.value() };
     s.gen++;
     s.title.release(); s.body.release();
-    if (this.session === s) this.session = null;
+    if (this.sessions.get(s.view) === s) this.sessions.delete(s.view);
   }
 
   initialize(ctx, cx) {
@@ -444,7 +467,8 @@ export default class Notes extends View {
    */
   paste(cx) {
     const field = this.typing, s = this.session;
-    if (!field) return false;
+    // A field of a note open in another project is not on screen.
+    if (!field || (field !== this.search && field !== s?.title && field !== s?.body)) return false;
     const text = cx.read_from_clipboard();
     if (!text) return true;
     field.replace(field === this.search || field === s?.title ? text.replace(/\s*\r?\n\s*/g, " ") : text);
@@ -643,6 +667,7 @@ export default class Notes extends View {
   render(cx) {
     const key = contextKey(location());
     if (this.visible() && (key !== this.ctx?.key || (!this.ctx.loading && Date.now() - this.ctx.loadedAt > STALE))) this.refresh(cx);
+    this.switchView();
     const t = theme(), s = this.session;
     return v_flex().id("notes").track_focus(this.handle).on_key_down((e, cx) => this.key(e, cx))
       .size_full().min_h(0).rounded(10).overflow_hidden().bg(t.background).border_1().border_color(t.border).text_color(t.foreground).text_size(13)
