@@ -1,12 +1,42 @@
-# Herdr Notes
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/logo-transparent-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/logo-transparent-light.png">
+    <img src="assets/logo-transparent-light.png" alt="Herdr Notes paper bird logo" width="200">
+  </picture>
+</p>
 
-Project notes in a Herdr side panel, shared with your agents.
+<h1 align="center">Herdr Notes</h1>
 
-A native [Herdr](https://herdr.dev) mod that shows the notes of the project
-you are working in, next to Files and Changes. Notes are stored in
-[Project Library](https://github.com/illegalstudio/project-library) (`plib`),
-so the coding agents in your terminals read and write the same notes through
-the plib CLI and its bundled skill. It also works for spaces on other machines.
+<p align="center">
+  <em>Project notes, shared with your agents.</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/illegalstudio/herdr-notes/releases"><img src="https://img.shields.io/github/v/release/illegalstudio/herdr-notes?style=flat-square&amp;logo=github&amp;logoColor=white&amp;color=78917B" alt="Latest release"></a>
+  <a href="https://github.com/illegalstudio/herdr-notes/actions/workflows/check.yml"><img src="https://img.shields.io/github/actions/workflow/status/illegalstudio/herdr-notes/check.yml?branch=main&amp;style=flat-square&amp;logo=github&amp;logoColor=white&amp;label=checks&amp;color=78917B" alt="Checks"></a>
+  <a href="https://github.com/illegalstudio/herdr-notes/releases"><img src="https://img.shields.io/github/downloads/illegalstudio/herdr-notes/total?style=flat-square&amp;logo=github&amp;logoColor=white&amp;label=downloads&amp;color=78917B" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/illegalstudio/herdr-notes?style=flat-square&amp;color=78917B" alt="License: MIT"></a>
+  <a href="https://github.com/illegalstudio/herdr-notes/stargazers"><img src="https://img.shields.io/github/stars/illegalstudio/herdr-notes?style=flat-square&amp;logo=github&amp;logoColor=white&amp;label=stars&amp;color=78917B" alt="Stars"></a>
+</p>
+
+<p align="center">
+  <strong>Native Herdr mod &middot; Markdown notes &middot; Shared with agents &middot; Remote spaces</strong>
+</p>
+
+<p align="center">
+  A native <a href="https://herdr.dev">Herdr</a> side panel for the notes of the
+  project you are working in. Powered by
+  <a href="https://github.com/illegalstudio/project-library">Project Library</a>,
+  so you and the coding agents in your terminals read and write the same notes,
+  locally and on remote machines.
+</p>
+
+<p align="center">
+  <a href="https://illegal.studio/en/products/herdr-notes"><strong>Official website</strong></a>
+</p>
+
+---
 
 ![The list, a note in Preview and the same note in the editor](preview.png)
 
