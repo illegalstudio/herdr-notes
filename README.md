@@ -137,6 +137,8 @@ herdr-app do tab.new '{"name":"Notes","mod":"herdr-notes"}'
   restarts; only a note you are writing for the first time always opens in
   the editor. `Ctrl+S` saves at once, `Escape` or **←** returns to the list.
   `Ctrl+V` pastes, and so does `Ctrl+Shift+V` (what Omarchy's Super+V sends).
+  In the editor and search, `Ctrl+Shift+C` (Omarchy's Super+C) copies the
+  selection. Use `Ctrl+C` to copy a selection in the Markdown preview.
 - The chip beside **←** shows the note's scope. Click it to move the note
   between the project and Global.
 - The copy icon puts the note's Markdown on your clipboard (its title when

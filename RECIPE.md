@@ -100,11 +100,10 @@ the machines of remote spaces, and reads and writes the plib note library.
   release them when the note closes.
 - `set_value` on an input or editor does not fire `change`: after loading
   another version into the fields, update the saved-state snapshot yourself.
-- The text fields paste only on Ctrl+V (Cmd+V on macOS). Omarchy's Super+V
-  reaches Herdr as Ctrl+Shift+V, so the panel catches that chord and inserts
-  the clipboard with `replace` into the focused field. Herdr's `EditorState`
-  has no such insertion call and a mod cannot dispatch the native paste
-  action, which is why the body is a textarea and not the code editor.
+- Omarchy's Super+C and Super+V reach Herdr as Ctrl+Shift+C and Ctrl+Shift+V
+  with the Herdr clipboard bindings. The panel reads the focused text field's
+  UTF-16 `selected_range` for copy and calls `replace` for paste. The Markdown
+  preview uses Herdr's native Ctrl+C selection handling.
 - A list read that started before a write finished must be discarded, or it
   puts the old text back into the open editor.
 - Herdr does not hot-reload a mod folder that is a symlink: recreate the

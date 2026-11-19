@@ -236,7 +236,6 @@ export default class Notes extends View {
     const base = note ? baseOf(note) : { title: "", body: "", scope: ctx.project && this.filter !== "global" ? "project" : "global", project: "", revision: null };
     const s = { view: viewKey(ctx), id: note?.id ?? null, on: ctx.on, dir: ctx.dir, project: ctx.project, base, scope: base.scope, gen: 0, saving: false, again: false, status: "", error: null, conflict: null, gone: false, confirm: false, dead: false, final: null, auto: false, fresh: !note };
     s.title = InputState.new({ placeholder: "Title", value: base.title });
-    // A textarea, not Herdr's code editor: only text states can take a paste from the mod (see paste).
     s.body = TextareaState.new({ value: base.body });
     // What the fields hold for the saved note: an editor may normalize text, and that is not an edit.
     s.shown = { title: s.title.value(), body: s.body.value() };
@@ -456,8 +455,26 @@ export default class Notes extends View {
     if (e.key === "escape" && s) { if (s.confirm) s.confirm = false; else this.leave(cx); }
     else if (e.key === "escape" && this.query) { this.search.set_value(""); this.query = ""; }
     else if (e.key === "s" && mod && s) this.save(s, cx);
-    else if (!(e.key === "v" && e.modifiers?.control && e.modifiers?.shift && this.paste(cx))) return;
+    else if (e.keystroke === "ctrl-shift-c") {
+      if (this.copySelection(cx)) cx.stop_propagation();
+      return;
+    } else if (!(e.key === "v" && e.modifiers?.control && e.modifiers?.shift && this.paste(cx))) return;
     cx.stop_propagation(); cx.notify();
+  }
+
+  focusedField() {
+    const field = this.typing, s = this.session;
+    if (!s) return field === this.search ? field : null;
+    return field === s.title || (field === s.body && this.modeOf(s) === "edit") ? field : null;
+  }
+
+  // Omarchy sends terminal-style shortcuts to the Herdr window.
+  copySelection(cx) {
+    const field = this.focusedField();
+    if (!field) return false;
+    const { start, end } = field.selected_range();
+    if (start !== end) cx.write_to_clipboard(field.value().slice(start, end));
+    return true;
   }
 
   /**
@@ -466,9 +483,8 @@ export default class Notes extends View {
    * Ctrl+Shift+V because its terminals need that chord.
    */
   paste(cx) {
-    const field = this.typing, s = this.session;
-    // A field of a note open in another project is not on screen.
-    if (!field || (field !== this.search && field !== s?.title && field !== s?.body)) return false;
+    const field = this.focusedField(), s = this.session;
+    if (!field) return false;
     const text = cx.read_from_clipboard();
     if (!text) return true;
     field.replace(field === this.search || field === s?.title ? text.replace(/\s*\r?\n\s*/g, " ") : text);
