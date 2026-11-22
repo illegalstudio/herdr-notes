@@ -2,7 +2,7 @@
 // Every read and write is a plib call on the machine that owns the space, so
 // the panel and the agents working there share one library.
 import { View, div, svg } from "gpui-kit";
-import { v_flex, h_flex, InputState, Input, TextareaState, Textarea, TextView } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, EditorState, Editor, TextView } from "gpui-base";
 import { spaces, panes, focused, exec, watchFolder, theme, settings, window, layout, notify, nextCommand, props } from "herdr";
 import * as P from "./plib.js";
 
@@ -236,7 +236,9 @@ export default class Notes extends View {
     const base = note ? baseOf(note) : { title: "", body: "", scope: ctx.project && this.filter !== "global" ? "project" : "global", project: "", revision: null };
     const s = { view: viewKey(ctx), id: note?.id ?? null, on: ctx.on, dir: ctx.dir, project: ctx.project, base, scope: base.scope, gen: 0, saving: false, again: false, status: "", error: null, conflict: null, gone: false, confirm: false, dead: false, final: null, auto: false, fresh: !note };
     s.title = InputState.new({ placeholder: "Title", value: base.title });
-    s.body = TextareaState.new({ value: base.body });
+    // The code editor set up as plain text. A Textarea is not usable here: at the end of a long
+    // note it scrolls two lines up on every key and drops back on the next frame.
+    s.body = EditorState.new({ value: base.body, soft_wrap: true, line_numbers: false, folding: false, font_family: settings().font_family, font_size: 13 });
     // What the fields hold for the saved note: an editor may normalize text, and that is not an edit.
     s.shown = { title: s.title.value(), body: s.body.value() };
     for (const state of [s.title, s.body]) {
@@ -675,7 +677,7 @@ export default class Notes extends View {
       ])))
       .child(div().flex_none().px(8).pt(8).pb(4).child(
         Input.new(s.title).h(34).px(8).rounded(7).bg(t.background).text_size(15).font_semibold().text_color(t.foreground)))
-      .when(mode === "edit", (el) => el.child(div().flex_1().min_h(0).px(16).py(8).child(Textarea.new(s.body).size_full().bg(t.background).text_size(13).font_family(settings().font_family).text_color(t.foreground))))
+      .when(mode === "edit", (el) => el.child(div().flex_1().min_h(0).px(10).py(2).child(Editor.new(s.body).size_full())))
       .when(mode === "preview", (el) => el.child(div().id("note-preview").flex_1().min_h(0).overflow_y_scrollbar().px(16).py(8)
         .child(body.trim() ? TextView.markdown("note-markdown", body).selectable() : div().text_size(12).text_color(t.dim).child("Nothing to preview yet"))));
   }

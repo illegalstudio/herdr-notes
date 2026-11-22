@@ -23,8 +23,9 @@ the folder is not a Git project with a remote.
 Note view: a 42 px header with **←**, a scope chip (accent for project),
 the save state (dim, right), **Preview** or **Edit**, and a trash icon that
 becomes **Delete** and **Cancel**; optional banners; a 15 px semibold title
-field; the body as a plain textarea in the terminal font (soft wrap), or
-rendered Markdown in Preview.
+field; the body in Herdr's code editor set up as plain text in the terminal
+font (soft wrap, no line numbers, no folding), or rendered Markdown in
+Preview.
 
 Full-panel messages replace the list when plib is missing on that machine
 (install commands and a button to the guide), is older than 0.1.4, has no
@@ -65,7 +66,7 @@ reach the notes through plib, not through this mod.
 ## Built from
 
 - `mods/herdr-notes/main.js` exports a gpui-kit `View` using `v_flex`,
-  `h_flex`, `InputState` + `Input`, `TextareaState` + `Textarea`,
+  `h_flex`, `InputState` + `Input`, `EditorState` + `Editor`,
   `TextView.markdown`, and from `herdr`: `spaces`, `panes`, `focused`,
   `exec`, `watchFolder`, `layout`, `theme`, `settings`, `notify`,
   `nextCommand`, `props`.
@@ -96,8 +97,12 @@ the machines of remote spaces, and reads and writes the plib note library.
 - Reads must use `--no-sync`, or every poll does a Git fetch.
 - Compare editor text with what the editor returned when the note was
   loaded, not with plib's body: an editor may normalize text.
-- Create `InputState` and `TextareaState` in handlers, never in `render`, and
+- Create `InputState` and `EditorState` in handlers, never in `render`, and
   release them when the note closes.
+- The body is an `Editor`, not a `Textarea`: at the end of a note taller than
+  the panel, a `Textarea` (Herdr 0.1.16) scrolls two lines up on each typed
+  key and drops back on the next frame. The `Editor` keeps that margin, and
+  also closes brackets and quotes and keeps the indentation of the line.
 - `set_value` on an input or editor does not fire `change`: after loading
   another version into the fields, update the saved-state snapshot yourself.
 - Omarchy's Super+C and Super+V reach Herdr as Ctrl+Shift+C and Ctrl+Shift+V
